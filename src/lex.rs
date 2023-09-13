@@ -1,6 +1,36 @@
-use std::{iter::Peekable, str::Chars};
+pub type Precedence = usize;
+pub const BASE_PRECEDENCE: Precedence = 0;
 
-use super::token::*;
+pub trait Order:q
+
+/// Binary Operator
+#[derive(Debug, Clone, Copy)]
+pub enum BinOp {
+  Add,
+  Sub,
+  Mul,
+  Div,
+}
+
+impl Into<Precedence> for BinOp {
+  fn into(self) -> Precedence {
+    match self {
+      BinOp::Add => 1,
+      BinOp::Sub => 1,
+      BinOp::Mul => 2,
+      BinOp::Div => 2,
+    }
+  }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum Token {
+  Num(f64),
+  BinOp(BinOp),
+  LParen,
+  RParen,
+  EOE,
+}
 
 fn parse_substr(s: &str, start: usize, end: usize) -> Token {
   let number_slice = &s[start..end];
@@ -33,10 +63,10 @@ pub fn lex(input: String) -> Vec<Token> {
     }
     // Token is a symbol
     match c {
-      '+' => tokens.push(Token::Add),
-      '-' => tokens.push(Token::Sub),
-      '*' => tokens.push(Token::Mul),
-      '/' => tokens.push(Token::Div),
+      '+' => tokens.push(Token::BinOp(BinOp::Add)),
+      '-' => tokens.push(Token::BinOp(BinOp::Sub)),
+      '*' => tokens.push(Token::BinOp(BinOp::Mul)),
+      '/' => tokens.push(Token::BinOp(BinOp::Div)),
       _ => {
         panic!("Invalid character: {}", c)
       },
@@ -45,44 +75,6 @@ pub fn lex(input: String) -> Vec<Token> {
   if let Some(start) = start_of_num {
     tokens.push(parse_substr(&input, start, input.len()));
   }
+  tokens.push(Token::EOE);
   tokens
-}
-
-enum CharType {
-  Number,
-  Letter,
-  Symbol,
-}
-
-impl CharType {
-  const SYMBOLS_LIST: [char; 4] = ['+', '-', '*', '/'];
-
-  pub fn of(c: char) -> Option<Self> {
-    if c.is_ascii_digit() {
-      Some(Self::Number)
-    } else if c.is_ascii() {
-      Some(Self::Letter)
-    } else if Self::SYMBOLS_LIST.contains(&c) {
-      Some(Self::Symbol)
-    } else {
-      None
-    }
-  }
-}
-
-pub struct TokenStream<'a> {
-  iterator: Peekable<Chars<'a>>,
-}
-
-impl<'a> TokenStream<'a> {
-  pub fn next(&mut self) -> Option<Token> {
-    let substr = iterator.as_str();
-    let token_type = CharType::of(self.iterator.next()?);
-    let mut index = 1;
-    loop {
-      let current_char = self.iterator.peek();
-      break;
-    }
-    todo!();
-  }
 }
