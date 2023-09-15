@@ -1,10 +1,10 @@
-pub type Precedence = usize;
-pub const BASE_PRECEDENCE: Precedence = 0;
-
-pub trait Order:q
+/// Evaluation order (ignoring parens)
+pub type EvalOrder = usize;
+pub const EVAL_FIRST: EvalOrder = 0;
+pub const EVAL_LAST: EvalOrder = std::usize::MAX;
 
 /// Binary Operator
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum BinOp {
   Add,
   Sub,
@@ -12,8 +12,8 @@ pub enum BinOp {
   Div,
 }
 
-impl Into<Precedence> for BinOp {
-  fn into(self) -> Precedence {
+impl Into<EvalOrder> for &BinOp {
+  fn into(self) -> EvalOrder {
     match self {
       BinOp::Add => 1,
       BinOp::Sub => 1,
@@ -23,7 +23,18 @@ impl Into<Precedence> for BinOp {
   }
 }
 
-#[derive(Debug, Clone, Copy)]
+impl BinOp {
+  pub fn perform(&self, a: f64, b: f64) -> f64 {
+    match self {
+      BinOp::Add => a + b,
+      BinOp::Sub => a - b,
+      BinOp::Mul => a * b,
+      BinOp::Div => a / b,
+    }
+  }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Token {
   Num(f64),
   BinOp(BinOp),
