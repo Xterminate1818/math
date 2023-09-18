@@ -1,91 +1,124 @@
-/// Evaluation order (ignoring parens)
-pub type EvalOrder = usize;
-pub const EVAL_FIRST: EvalOrder = 0;
-pub const EVAL_LAST: EvalOrder = std::usize::MAX;
-
-/// Binary Operator
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum BinOp {
-  Add,
-  Sub,
-  Mul,
-  Div,
-}
-
-impl Into<EvalOrder> for &BinOp {
-  fn into(self) -> EvalOrder {
-    match self {
-      BinOp::Add => 1,
-      BinOp::Sub => 1,
-      BinOp::Mul => 2,
-      BinOp::Div => 2,
-    }
-  }
-}
-
-impl BinOp {
-  pub fn perform(&self, a: f64, b: f64) -> f64 {
-    match self {
-      BinOp::Add => a + b,
-      BinOp::Sub => a - b,
-      BinOp::Mul => a * b,
-      BinOp::Div => a / b,
-    }
-  }
-}
+use std::{iter::Peekable, str::Chars};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum Token {
-  Num(f64),
-  BinOp(BinOp),
-  LParen,
-  RParen,
-  EOE,
+pub enum Wrapping {
+  Paren,
+  Curly,
+  Square,
 }
 
-fn parse_substr(s: &str, start: usize, end: usize) -> Token {
-  let number_slice = &s[start..end];
-  match number_slice.parse::<f64>() {
-    Ok(n) => Token::Num(n),
-    Err(_) => panic!("Invalid number: {}", number_slice),
-  }
+#[derive(Clone, PartialEq)]
+pub enum Lexeme {
+  Number(String),
+  Identifier(String),
+  Special(char),
+  LeftWrap(Wrapping),
+  RightWrap(Wrapping),
+  Unknown(char),
 }
 
-pub fn lex(input: String) -> Vec<Token> {
-  let mut tokens = vec![];
-  let mut start_of_num: Option<usize> = None;
-  for (index, c) in input.char_indices() {
-    let is_num = (c >= '0' && c <= '9') || c == '.';
-    match start_of_num {
-      Some(start) => {
-        if is_num {
-          continue;
-        } else {
-          // Finished parsing number
-          let t = parse_substr(&input, start, index);
-          tokens.push(t);
-          start_of_num = None;
+impl std::fmt::Debug for Lexeme {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      Lexeme::Number(s) => write!(f, "Number::{}", s),
+      Lexeme::Identifier(s) => write!(f, "Ident::{}", s),
+      Lexeme::Special(c) => write!(f, "Special::{}", c),
+      Lexeme::LeftWrap(w) => write!(
+        f,
+        "LWrap::{}",
+        match w {
+          Wrapping::Paren => '(',
+          Wrapping::Curly => '{',
+          Wrapping::Square => '[',
         }
-      },
-      None => {
-        start_of_num = Some(index);
-        continue;
-      },
-    }
-    // Token is a symbol
-    match c {
-      '+' => tokens.push(Token::BinOp(BinOp::Add)),
-      '-' => tokens.push(Token::BinOp(BinOp::Sub)),
-      '*' => tokens.push(Token::BinOp(BinOp::Mul)),
-      '/' => tokens.push(Token::BinOp(BinOp::Div)),
-      _ => {
-        panic!("Invalid character: {}", c)
-      },
+      ),
+
+      Lexeme::RightWrap(w) => write!(
+        f,
+        "RWrap::{}",
+        match w {
+          Wrapping::Paren => ')',
+          Wrapping::Curly => '}',
+          Wrapping::Square => ']',
+        }
+      ),
+      Lexeme::Unknown(c) => write!(f, "?::{}", c),
     }
   }
-  if let Some(start) = start_of_num {
-    tokens.push(parse_substr(&input, start, input.len()));
+}
+
+/// Matches to grouping lexeme if applicable
+#[inline]
+fn match_wrapping_char(c: char) -> Option<Lexeme> {
+  Some(match c {
+    '(' => Lexeme::LeftWrap(Wrapping::Paren),
+    ')' => Lexeme::RightWrap(Wrapping::Paren),
+    '{' => Lexeme::LeftWrap(Wrapping::Curly),
+    '}' => Lexeme::RightWrap(Wrapping::Curly),
+    '[' => Lexeme::LeftWrap(Wrapping::Square),
+    ']' => Lexeme::RightWrap(Wrapping::Square),
+    _ => return None,
+  })
+}
+
+/// Collects contiguous chars using closure
+#[inline]
+fn grab_while(
+  char_stream: &mut Peekable<Chars<'_>>,
+  closure: impl Fn(&char) -> bool,
+) -> String {
+  let mut word: Vec<char> = vec![];
+  while let Some(next) = char_stream.peek() {
+    if !closure(next) {
+      break;
+    }
+    word.push(next.clone());
+    char_stream.next();
   }
-  tokens.push(Token::EOE);
-  tokens
+  word.into_iter().collect::<String>()
+}
+
+pub fn lex(input: String) -> Vec<Lexeme> {
+  let mut lexemes = vec![];
+  let mut char_stream = input.chars().peekable();
+  while let Some(next) = char_stream.peek() {
+    let next = next.clone();
+    // Operator
+    if Lexeme::SPECIAL_CHARS.contains(&next) {
+      lexemes.push(Lexeme::Special(next));
+    }
+    // Identifier
+    else if next.is_ascii_alphabetic() {
+      let word = grab_while(&mut char_stream, |c| c.is_alphanumeric());
+      lexemes.push(Lexeme::Identifier(word));
+      continue;
+    }
+    // Number
+    else if next.is_ascii_digit() {
+      let word = grab_while(&mut char_stream, |c| c.is_ascii_digit());
+      lexemes.push(Lexeme::Number(word));
+      continue;
+    }
+    // Wrapping
+    else if let Some(grp) = match_wrapping_char(next) {
+      lexemes.push(grp);
+    }
+    // Whitespace
+    else if next.is_whitespace() {
+      // Skip
+    }
+    // Unrecognized char
+    else {
+      lexemes.push(Lexeme::Unknown(next));
+    }
+    char_stream.next();
+  }
+  lexemes
+}
+
+impl Lexeme {
+  const SPECIAL_CHARS: [char; 19] = [
+    '~', '`', '!', '@', '#', '$', '%', '^', '&', '*', '-', '+', '=', '|', ':',
+    '/', '?', '<', '>',
+  ];
 }
