@@ -56,7 +56,7 @@ impl std::fmt::Debug for Token {
         ops: NumOperands::Binary,
         ..
       } => write!(f, "binary::{symbol}"),
-      Token::ImplicitOp(_) => write!(f, "binary::implicit"),
+      Token::ImplicitOp(_) => write!(f, "binary::implicit()"),
     }
   }
 }
@@ -66,25 +66,29 @@ pub fn tokenize(lexemes: Vec<Lexeme>) -> Result<Vec<Token>, TokenError> {
   let mut tokens = vec![];
   for index in 0..lexemes.len() {
     match &lexemes[index] {
+      // Parse number
       Lexeme::Number(s) => {
         let n = match s.parse::<Number>() {
           Ok(n) => n,
           Err(_) => return Err(TokenError::BadNumber),
         };
-        if let Some(Token::Variable(_)) = tokens.last() {
+        if tokens.last().is_some_and(|t: &Token| t.is_numeric()) {
           tokens.push(Token::ImplicitOp(wrappings.len()));
         }
         tokens.push(Token::Constant(n));
       },
+      // Discriminate between functions and vars
       Lexeme::Identifier(s) => match lexemes.get(index + 1) {
         Some(Lexeme::LeftWrap(_)) => tokens.push(Token::Function(s.clone())),
         _ => {
-          if let Some(Token::Constant(_)) = tokens.last() {
+          // Insert implicit op
+          if tokens.last().is_some_and(|t: &Token| t.is_numeric()) {
             tokens.push(Token::ImplicitOp(wrappings.len()));
           }
           tokens.push(Token::Variable(s.clone()));
         },
       },
+      // Discriminate between unary and binary ops
       Lexeme::Special(c) => tokens.push(Token::Operator {
         symbol: *c,
         wrapping: wrappings.len(),
@@ -97,7 +101,9 @@ pub fn tokenize(lexemes: Vec<Lexeme>) -> Result<Vec<Token>, TokenError> {
           NumOperands::Binary
         },
       }),
+      // Incrememnt wrap
       Lexeme::LeftWrap(w) => {
+        // Not redundant! Makes sure wrapping level is correct
         match tokens.last() {
           Some(Token::Variable(_)) | Some(Token::Constant(_)) => {
             tokens.push(Token::ImplicitOp(wrappings.len()))
@@ -107,6 +113,7 @@ pub fn tokenize(lexemes: Vec<Lexeme>) -> Result<Vec<Token>, TokenError> {
         wrappings.push(*w);
       },
       Lexeme::RightWrap(w) => {
+        // Check validity of closing wrap
         if wrappings.pop() != Some(*w) {
           return Err(TokenError::UnmatchedWrapping);
         }
