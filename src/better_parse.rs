@@ -1,7 +1,8 @@
 use std::rc::Rc;
 
-use crate::tok::Token;
+use crate::{alg::Algebra, tok::Token};
 
+#[derive(Debug, Clone)]
 pub enum AstNode {
   Some {
     token: Token,
@@ -38,4 +39,61 @@ impl AstNode {
   }
 }
 
-z
+pub struct Ast {
+  algebra: Algebra,
+  root: Rc<AstNode>,
+}
+
+impl Ast {
+  pub fn new() -> Self {
+    Self {
+      algebra: Algebra::default(),
+      root: Rc::new(AstNode::None),
+    }
+  }
+
+  pub fn should_sink(&self, a: &AstNode, b: &AstNode) -> bool {
+    // Sink to the bottom if constant, variable, or none
+    if a.is_none() {
+      return true; // Possibly error or panic
+    }
+    if let AstNode::Some {
+      token: Token::Constant(_) | Token::Variable(_),
+      ..
+    } = a
+    {
+      return true;
+    }
+
+    let (paren_a, prio_a): (usize, usize) = match a {
+      AstNode::Some {
+        token:
+          Token::Operator {
+            symbol,
+            wrapping,
+            ops,
+          },
+        ..
+      } => todo!(),
+      AstNode::Some {
+        token: Token::Variable(_) | Token::Constant(_),
+        ..
+      } => return true,
+      AstNode::None => return true,
+      _ => todo!(),
+    };
+
+    todo!()
+  }
+
+  pub fn push(&mut self, node: AstNode) {
+    let node = Rc::new(node);
+    let mut ptr = &mut self.root;
+    loop {
+      if ptr.is_none() {
+        *ptr = node;
+        return;
+      }
+    }
+  }
+}

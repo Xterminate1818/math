@@ -1,3 +1,4 @@
+pub mod alg;
 pub mod better_parse;
 pub mod lex;
 pub mod ops;

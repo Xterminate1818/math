@@ -12,12 +12,6 @@ pub enum TokenError {
   IllegalSymbol,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum NumOperands {
-  Unary,
-  Binary,
-}
-
 #[derive(Clone)]
 pub enum Token {
   Constant(Number),
@@ -26,7 +20,6 @@ pub enum Token {
   Operator {
     symbol: char,
     wrapping: WrappingLevel,
-    ops: NumOperands,
   },
   ImplicitOp(WrappingLevel),
 }
@@ -46,16 +39,7 @@ impl std::fmt::Debug for Token {
       Token::Constant(n) => write!(f, "const::{n}"),
       Token::Variable(s) => write!(f, "var::{s}"),
       Token::Function(s) => write!(f, "func::{s}"),
-      Token::Operator {
-        symbol,
-        ops: NumOperands::Unary,
-        ..
-      } => write!(f, "unary::{symbol}"),
-      Token::Operator {
-        symbol,
-        ops: NumOperands::Binary,
-        ..
-      } => write!(f, "binary::{symbol}"),
+      Token::Operator { symbol, .. } => write!(f, "op::{symbol}"),
       Token::ImplicitOp(_) => write!(f, "binary::implicit()"),
     }
   }
@@ -92,14 +76,6 @@ pub fn tokenize(lexemes: Vec<Lexeme>) -> Result<Vec<Token>, TokenError> {
       Lexeme::Special(c) => tokens.push(Token::Operator {
         symbol: *c,
         wrapping: wrappings.len(),
-        ops: if matches!(
-          lexemes.get(index - 1),
-          Some(Lexeme::LeftWrap(_)) | Some(Lexeme::Special(_)) | None
-        ) {
-          NumOperands::Unary
-        } else {
-          NumOperands::Binary
-        },
       }),
       // Incrememnt wrap
       Lexeme::LeftWrap(w) => {
