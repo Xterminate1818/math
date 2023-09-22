@@ -30,10 +30,13 @@ impl Function {
     map.insert("sin".to_string(), _SIN_FUNC);
     map.insert("cos".to_string(), _COS_FUNC);
     map.insert("tan".to_string(), _TAN_FUNC);
+    map.insert("csc".to_string(), _CSC_FUNC);
+    map.insert("sec".to_string(), _SEC_FUNC);
+    map.insert("cot".to_string(), _COT_FUNC);
 
-    map.insert("asin".to_string(), _ASIN_FUNC);
-    map.insert("acos".to_string(), _ACOS_FUNC);
-    map.insert("atan".to_string(), _ATAN_FUNC);
+    map.insert("arcsin".to_string(), _ASIN_FUNC);
+    map.insert("arccos".to_string(), _ACOS_FUNC);
+    map.insert("arctan".to_string(), _ATAN_FUNC);
 
     map.insert("ln".to_string(), _LN_FUNC);
     map.insert("abs".to_string(), _ABS_FUNC);
@@ -52,6 +55,15 @@ const _COS_FUNC: Function =
 
 const _TAN_FUNC: Function =
   Function::SoftwareDefined(|n| sanitize_result(n.tan()));
+
+const _CSC_FUNC: Function =
+  Function::SoftwareDefined(|n| sanitize_result(n.sin().inv()));
+
+const _SEC_FUNC: Function =
+  Function::SoftwareDefined(|n| sanitize_result(n.cos().inv()));
+
+const _COT_FUNC: Function =
+  Function::SoftwareDefined(|n| sanitize_result(n.tan().inv()));
 
 // inverse trig
 const _ASIN_FUNC: Function =
