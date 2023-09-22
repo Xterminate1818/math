@@ -95,7 +95,8 @@ pub fn lex(input: String) -> Vec<Lexeme> {
     }
     // Number
     else if next.is_ascii_digit() {
-      let word = grab_while(&mut char_stream, |c| c.is_ascii_digit());
+      let word =
+        grab_while(&mut char_stream, |c| c.is_ascii_digit() || *c == '.');
       lexemes.push(Lexeme::Number(word));
       continue;
     }
