@@ -170,6 +170,9 @@ impl Ast {
   }
 
   pub fn evaluate(&self, ctx: &Context) -> MathResult {
+    if let AstNode::None = *self.root {
+      return Err(MathError::NoInput);
+    }
     self.root.evaluate(ctx)
   }
 
