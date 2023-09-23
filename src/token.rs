@@ -1,17 +1,11 @@
 use crate::{
+  error::MathError,
   lexer::{Lexeme, Wrapping},
   number::Number,
   operator::{Operation, OperatorSet},
 };
 
 pub type WrappingLevel = usize;
-
-#[derive(Debug, Clone)]
-pub enum TokenError {
-  UnmatchedWrapping,
-  BadNumber,
-  IllegalSymbol,
-}
 
 #[derive(Clone)]
 pub enum Token {
@@ -47,7 +41,7 @@ impl std::fmt::Debug for Token {
 pub fn tokenize(
   op_set: OperatorSet,
   lexemes: Vec<Lexeme>,
-) -> Result<Vec<Token>, TokenError> {
+) -> Result<Vec<Token>, MathError> {
   let mut wrappings: Vec<Wrapping> = vec![];
   let mut tokens = vec![];
   for index in 0..lexemes.len() {
@@ -56,7 +50,7 @@ pub fn tokenize(
       Lexeme::Number(s) => {
         let n = match s.parse::<Number>() {
           Ok(n) => n,
-          Err(_) => return Err(TokenError::BadNumber),
+          Err(_) => return Err(MathError::BadNumber),
         };
         if tokens.last().is_some_and(|t: &Token| t.is_numeric()) {
           tokens.push(Token::Operator {
@@ -93,7 +87,7 @@ pub fn tokenize(
       Lexeme::Special(c) => {
         let op = match op_set.get(c) {
           Some(op) => op.clone(),
-          None => return Err(TokenError::IllegalSymbol),
+          None => return Err(MathError::IllegalSymbol),
         };
         tokens.push(Token::Operator {
           op,
@@ -117,14 +111,14 @@ pub fn tokenize(
       Lexeme::RightWrap(w) => {
         // Check validity of closing wrap
         if wrappings.pop() != Some(*w) {
-          return Err(TokenError::UnmatchedWrapping);
+          return Err(MathError::UnmatchedWrapping);
         }
       },
-      Lexeme::Unknown(_) => return Err(TokenError::IllegalSymbol),
+      Lexeme::Unknown(_) => return Err(MathError::IllegalSymbol),
     }
   }
   if !wrappings.is_empty() {
-    return Err(TokenError::UnmatchedWrapping);
+    return Err(MathError::UnmatchedWrapping);
   }
   Ok(tokens)
 }

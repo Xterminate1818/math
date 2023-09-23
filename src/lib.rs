@@ -16,7 +16,7 @@ pub mod variables;
 
 pub fn evaluate(input: String) -> MathResult {
   let ls = lexer::lex(input);
-  let ts = token::tokenize(OperatorSet::default(), ls).unwrap();
+  let ts = token::tokenize(OperatorSet::default(), ls)?;
   let context = Context::default();
   let tree = Ast::new(ts);
   let result = tree.evaluate(&context);
