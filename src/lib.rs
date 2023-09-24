@@ -14,12 +14,14 @@ pub mod parse;
 pub mod token;
 pub mod variables;
 
-fn round(num: f64) -> f64 {
+fn round(mut num: f64) -> f64 {
   if (num.round() - num).abs() < 0.0001 {
-    num.round()
-  } else {
-    num
+    num = num.round()
   }
+  if num == -0.0 {
+    num = 0.0;
+  }
+  num
 }
 
 pub fn evaluate(input: String) -> MathResult {
