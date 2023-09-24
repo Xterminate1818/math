@@ -35,6 +35,6 @@ pub fn result_to_string(result: MathResult) -> String {
         return format!("{}i", num.im);
       }
     },
-    Err(err) => err.to_string(),
+    Err(err) => "".to_string(),
   }
 }
