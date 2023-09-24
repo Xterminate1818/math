@@ -133,6 +133,7 @@ impl AstNode {
         match (left.evaluate(ctx), right.evaluate(ctx)) {
           (Ok(a), Ok(b)) => op.perform_binary(a, b),
           (Err(_), Ok(a)) => op.perform_unary(a),
+          (Ok(a), Err(_)) => op.perform_unary(a),
           _ => Err(MathError::Undefined),
         }
       },

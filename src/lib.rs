@@ -14,13 +14,29 @@ pub mod parse;
 pub mod token;
 pub mod variables;
 
+fn round(num: f64) -> f64 {
+  if (num.round() - num).abs() < 0.0001 {
+    num.round()
+  } else {
+    num
+  }
+}
+
 pub fn evaluate(input: String) -> MathResult {
   let ls = lexer::lex(input);
   let ts = token::tokenize(OperatorSet::default(), ls)?;
   let context = Context::default();
   let tree = Ast::new(ts);
   let result = tree.evaluate(&context);
-  result
+
+  match result {
+    Ok(mut num) => {
+      num.re = round(num.re);
+      num.im = round(num.im);
+      Ok(num)
+    },
+    Err(err) => Err(err),
+  }
 }
 
 pub fn evaluate_to_string(input: String) -> String {
